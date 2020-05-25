@@ -1,0 +1,443 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,
+            shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Monitoring Latencia</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')
+            }}">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/js/all.min.js"
+            crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script src="../static/Chart.min.css"></script>
+        <script src="../static/Chart.min.js"></script>
+
+        <script type="text/javascript">
+            window.onload = function() {
+                document.getElementById("spinner1").setAttribute("style","display:none");
+                var valorPerdido = document.getElementById('value-perdidos').innerHTML;
+                var valorWarning = document.getElementById('warning-id').innerHTML;
+                if (valorPerdido > 0 || valorWarning > 10) {
+                    document.getElementById("button-status").setAttribute("style","background-color:red; color:white; cursor:default;");
+                    document.getElementById("button-status").value = 'Necessita analise';
+                } else {
+                    document.getElementById("button-status").setAttribute("style","background-color:green; color:white; cursor:default;");
+                    document.getElementById("button-status").value = 'Status OK';
+                }
+            }
+            jQuery(document).ready(function($) {
+              $(document.getElementById("cadastro")).on( "click", function() {
+                  $( "#collapseOne" ).toggle("slow");
+              });     
+            });
+            function confirmed() {
+                event.preventDefault()
+                document.getElementById("spinner1").setAttribute("style","display:block; margin: 0px 0px 14px 17px;");
+                var  intervalID = setInterval(function(){$("#formGraficoGerador").delay(200).submit();}, 10000);
+            }
+            disableInterval = function(){   
+                window.clearInterval(intervalID);
+                document.getElementById("spinner1").setAttribute("style","display:none");
+            }
+            
+            jQuery(document).ready(function($) {
+              $(document.getElementById("navbarDropdownMenuLink")).on( "click", function() {
+                  $( "#links" ).toggle("slow");
+              });     
+            });
+
+          </script>
+    </head>
+    <body class="sb-nav-fixed">
+        <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+            <a class="navbar-brand" href="index.html">Monitoring Latencia</a>
+            <!-- Navbar-->
+            <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item dropdown" style="float: right">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <svg class="bi bi-bell" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 16a2 2 0 002-2H6a2 2 0 002 2z"/>
+                      <path fill-rule="evenodd" d="M8 1.918l-.797.161A4.002 4.002 0 004 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 00-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 111.99 0A5.002 5.002 0 0113 6c0 .88.32 4.2 1.22 6z" clip-rule="evenodd"/>
+                      </svg>
+                        {% set notf = [] %}
+                        {% if alerta > 2 %}
+                            {{ notf.append([]) or ""}}
+                        {% endif %}
+                        {% if alerta > 0 %}
+                            {{ notf.append([]) or ""}}
+                        {% endif %}
+                        {% set v = 0 %}
+                        {% for response in responseList %}
+                            {% if response.tempo >= aviso %}
+                                {{ notf.append(response) or "" }}
+                            {% endif %}
+                        {% endfor %}
+                      <span id="warning-id" class="badge badge-light">{{ notf|length }}</span>
+                    </a>
+                    <div id="links" class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink" style="height: auto; max-height: 200px; overflow-x: hidden">
+                        {% if alerta == 1 or alerta == 3 %}
+                            <div class="alert alert-danger" role="alert" style="width: 240px">
+                                O endereço {{primeiraURL}} é invalido.
+                            </div>
+                        {% endif %}
+                        {% if alerta == 2 or alerta == 3 %}
+                            <div class="alert alert-danger" role="alert" style="width: 240px">
+                                O endereço {{segundaURL}} é invalido.
+                            </div>
+                        {% endif %}
+                        <a class="dropdown-item">Pings que excederam:</a>
+                        {% for response in responseList %}
+                            {% if response.tempo >= aviso %}
+                                <div class="alert alert-danger" role="alert" style="width: 240px">
+                                  {{response.ip}} = {{response.tempo}}ms
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </li>
+                <li>
+                </li>
+            </ul>
+                <form action="/aviso" class="form-inline my-2" style="float: right">
+                    <input class="form-control" type="number" id="limite" name="limite" value="{{aviso}}" style="-moz-appearance: textfield; -webkit-appearance: none;" required>
+                    <button type="submit" class="btn btn-primary ml-2">Definir Aviso</button>
+                </form>
+            </div>
+        </nav>
+        <div id="layoutSidenav">
+            <div id="layoutSidenav_nav">
+                <nav class="sb-sidenav accordion sb-sidenav-dark"
+                    id="sidenavAccordion">
+                    <div class="sb-sidenav-menu">
+                        <div class="nav">
+                            <div class="sb-sidenav-menu-heading">Principal</div>
+                            <a class="nav-link" href="index.html"><div
+                                    class="sb-nav-link-icon"><i class="fas
+                                        fa-tachometer-alt"></i></div>Dashboard</a>
+                            
+                            <input id="button-status" type="button" class="btn" aria-controls="dataTable" value="status"></input>
+                        </div>
+                    </div>
+                    <div class="sb-sidenav-footer">
+                        <div class="small">PROJETO PI</div>
+                        USJT - 2020
+                    </div>
+                </nav>
+            </div>
+            <div id="layoutSidenav_content">
+                <main>
+                    <div style="display: flex; align-items: flex-end;">
+                        <h1 class="mt-4" style="margin-left: 17px;">Dashboard</h1>
+                        <div id="spinner1" class="spinner-border" role="status" style="margin: 0px 0px 14px 17px;">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                    <ol class="breadcrumb mb-4">
+                        <li class="breadcrumb-item active" style="width: 100%">
+                            <div class="accordion" id="accordionExample" style="width: 100%">
+                                <div class="card text-center">
+                                    <div class="card-header" id="headingOne">
+                                        <h5 class="mb-0">
+                                            <button class="btn btn-link
+                                                toggle-btn" type="button"
+                                                data-toggle="collapse"
+                                                data-target="#collapseOne"
+                                                aria-expanded="true"
+                                                aria-controls="collapseOne" id="cadastro">
+                                                Cadastrar Redes Para Monitoramento
+                                            </button>
+                                        </h5>
+                                    </div>
+                                    <div id="collapseOne" class="collapse"
+                                        aria-labelledby="headingOne"
+                                        data-parent="#accordionExample">
+                                        <div class="card-body">
+                                            <form action="/resgister"
+                                                method="GET">
+                                                <div class="row
+                                                    justify-content-center
+                                                    align-items-center">
+                                                    <input id="url1" type="text"
+                                                        name="url1"
+                                                        style="margin-right:
+                                                        60px; margin-bottom:
+                                                        20px;" value='{{URL1}}'
+                                                        class="form-control
+                                                        col-md-4" required
+                                                        id="newStuff"
+                                                        placeholder="Informe um IP ou URL"
+                                                        maxlength="64">
+                                                    <input id="url2" type="text"
+                                                        name="url2"
+                                                        style="margin-right:
+                                                        60px; margin-bottom:
+                                                        20px;" value='{{URL2}}'
+                                                        class="form-control
+                                                        col-md-4" required
+                                                        id="newStuff"
+                                                        placeholder="Informe um IP ou URL"
+                                                        maxlength="64">
+                                                    <div style="margin-bottom: 20px;">
+                                                        <button class="btn
+                                                            btn-primary"
+                                                            aria-controls="dataTable">Salvar</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </ol>
+                    <form id="formGraficoGerador" action="/sendPing"
+                        method="GET">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-xl-3 col-md-6">
+                                    <div class="card bg-primary text-white
+                                        mb-4">
+                                        <div class="card-body">Testes de Latência Enviados</div>
+                                        <h1 style="text-align:center">{{enviados}}</h1>
+                                        <div class="card-footer d-flex
+                                            align-items-center
+                                            justify-content-between">
+                                            <div class="small text-white"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-md-6">
+                                    <div class="card bg-success text-white
+                                        mb-4">
+                                        <div class="card-body">Testes de Latência com Sucesso</div>
+                                        <h1 style="text-align:center">{{sucesso}}</h1>
+                                        <div class="card-footer d-flex
+                                            align-items-center
+                                            justify-content-between">
+                                            <div class="small text-white"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-md-6">
+                                    <div class="card bg-danger text-white mb-4">
+                                        <div class="card-body">Testes de Latência que Falharam</div>
+                                        <h1 id='value-perdidos' style="text-align:center">{{perdidos}}</h1>
+                                        <div class="card-footer d-flex
+                                            align-items-center
+                                            justify-content-between">
+                                            <div class="small text-white"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-md-6">
+                                    <div class="card bg-warning text-white
+                                        mb-4">
+                                        <div class="card-body">Maior Tempo de
+                                            Resposta</div>
+                                        <h1 style="text-align:center">{{maiorPing}}</h1>
+                                        <div class="card-footer d-flex
+                                            align-items-center
+                                            justify-content-between">
+                                            <div class="small text-white"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xl-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header"><i class="fas
+                                                fa-chart-area mr-1"></i>Gráfico
+                                            de Desempenho</div>
+                                        <div class="card-body">
+                                            <div class="chartjs-size-monitor">
+                                                <div
+                                                    class="chartjs-size-monitor-expand">
+                                                    <div class="">
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="chartjs-size-monitor-shrink">
+                                                    <div class="">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% if estatisticaList != null %}
+                                            <canvas id="myChart100" width="100%"
+                                                height="40"></canvas>
+                                            <script>
+                                            var ctx = document.getElementById('myChart100').getContext('2d');
+                                            var myChart = new Chart(ctx, {
+                                                type: 'bar',
+                                                data: {
+                                                    labels: [{% for response in responseList %}
+                                                        {% if response.sequencia == 0 %}'{{response.ip}}',{% endif %}{% endfor %}],
+                                                    datasets: [
+                                                        {
+                                                        label: 'Mínimo (ms): ',
+                                                        data: [{% for estatistica in estatisticaList %}{{estatistica.min}},{% endfor %}],
+                                                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                                        borderColor: 'rgba(54, 162, 235, 1)',
+                                                        borderWidth: 1
+                                                    },
+                                                    {
+                                                        label: 'Medio (ms): ',
+                                                        data: [{% for estatistica in estatisticaList %}{{estatistica.med}},{% endfor %}],
+                                                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                                                        borderColor: 'rgba(255, 159, 64, 1)',
+                                                        borderWidth: 1
+                                                    },
+                                                    {
+                                                        label: 'Maximo (ms):',
+                                                        data: [{% for estatistica in estatisticaList %}{{estatistica.max}},{% endfor %}],
+                                                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                                        borderWidth: 1
+                                                    }
+                                                ]
+                                            },
+                                            options: {
+                                                xAxes: [{
+                                                    barPercentage: 1,
+                                                    categoryPercentage: 1
+                                                }]
+                                            }
+                                        });
+                                        var  intervalID = setInterval(function(){$("#formGraficoGerador").delay(200).submit();}, 10000);
+                                    </script>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header"><i class="fas
+                                                fa-chart-bar mr-1"></i>Informação
+                                            dos Pacotes</div>
+                                        <div class="card-body">
+                                            {% if estatisticaList != null %}
+                                            <canvas id="myPie100" width="100%"
+                                                height="40"></canvas>
+                                            <script>
+                                          var ctx = document.getElementById('myPie100').getContext('2d');
+                                          var myChart = new Chart(ctx, {
+                                              type: 'horizontalBar',
+                                              data: {
+                                                  labels: [{% for response in responseList %}
+                                                      {% if response.sequencia == 0 %}'{{response.ip}}',{% endif %}{% endfor %}],
+                                                  datasets: [
+                                                      {
+                                                      label: 'Pacotes Enviados: ',
+                                                      data: [{% for estatistica in estatisticaList %}{{estatistica.enviados}},{% endfor %}],
+                                                      backgroundColor: '#007bff',
+                                                      borderColor: '#007bff',
+                                                      borderWidth: 1
+                                                  },
+                                                      {
+                                                      label: 'Pacotes Recebidos: ',
+                                                      data: [{% for estatistica in estatisticaList %}{{estatistica.recebidos}},{% endfor %}],
+                                                      backgroundColor: '#ffc107',
+                                                      borderColor: '#ffc107',
+                                                      borderWidth: 1
+                                                  },
+                                                      {
+                                                      label: 'Pacotes Perdidos:',
+                                                      data: [{% for estatistica in estatisticaList %}{{estatistica.perdidos}},{% endfor %}],
+                                                      backgroundColor: '#dc3545',
+                                                      borderColor: '#dc3545',
+                                                      borderWidth: 1
+                                                  }
+                                                  ]
+                                              },
+                                              options: {
+                                                  xAxes: [{
+                                                      barPercentage: 1,
+                                                      categoryPercentage: 1
+                                                  }]
+                                              }
+                                          });
+                                      </script>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="fas fa-table mr-1"></i>Resultado Testes de Latência</div>
+                                <div class="card-body">
+                                    <div >
+                                        <div style="float: left;">
+                                            <ul class="list-group" style="display: -webkit-inline-box; margin-bottom: 15px;">
+                                                <li class="list-group-item">{{primeiraURL}}</li>
+                                                <li class="list-group-item">{{segundaURL}}</li>
+                                            </ul>
+                                        </div>
+                                        <div class="row" style="float: right;">
+                                            <div class="col-md-7" style="margin: 0px -26px 11px 0px;">
+                                                <input type="button" class="btn btn-primary"
+                                                    onClick="confirmed()" value="Verificar Latências"></input>
+                                            </div>
+                                            <div class="col-md-1" style="margin: 0px 42px 0px 0px;">
+                                                <input type="button"
+                                                    class="btn btn-danger"
+                                                    onClick="disableInterval()"
+                                                    aria-controls="dataTable"
+                                                    value="Parar Verificação"></input>
+                                            </div>
+                                        </div>
+                                        <table class="table table-bordered"
+                                            id="dataTable"
+                                            cellspacing="0">
+                                            <thead>
+                                                <tr>
+                                                    <th>IP</th>
+                                                    <th>Tamanho do Pacote</th>
+                                                    <th>Tempo de Resposta</th>
+                                                    <th>TLL</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for response in responseList %}
+                                                <tr>
+                                                    <td>{{response.ip}}</td>
+                                                    <td>{{response.bytes}} bytes</td>
+                                                    <td>{{response.tempo}} ms</td>
+                                                    <td>{{response.ttl}}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </main>
+                <footer class="py-4 bg-light mt-auto">
+                    <div class="container-fluid">
+                        <div class="d-flex align-items-center
+                            justify-content-between small">
+                            <div class="text-muted">Conheça nossa plataforma e
+                                aproveite as vantagens de utilizar</div>
+                            <script src="{{ url_for('static',
+                                filename='scripts.js') }}"></script>
+                            <script
+                                src="https://code.jquery.com/jquery-3.4.1.min.js"
+                                crossorigin="anonymous"></script>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </body>
+</html>
